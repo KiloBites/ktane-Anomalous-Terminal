@@ -1,0 +1,10 @@
+{
+  "name": "anomalousTerminal-Editor",
+  "references": [
+    "anomalousTerminal"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": []
+}

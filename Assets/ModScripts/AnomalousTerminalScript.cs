@@ -7,7 +7,7 @@ using KModkit;
 using static UnityEngine.Random;
 using static UnityEngine.Debug;
 
-public class TemplateScript : MonoBehaviour 
+public class AnomalousTerminalScript : MonoBehaviour 
 {
 
 	public KMBombInfo Bomb;
