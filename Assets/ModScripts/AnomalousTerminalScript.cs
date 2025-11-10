@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using KModkit;
 using static UnityEngine.Random;
 using static UnityEngine.Debug;
 
@@ -13,6 +12,10 @@ public class AnomalousTerminalScript : MonoBehaviour
 	public KMBombInfo Bomb;
 	public KMAudio Audio;
 	public KMBombModule Module;
+
+	public VCRDisplay MainVCRDisplay;
+	public Material[] ScreenColorMats;
+	public MeshRenderer ModuleScreen;
 
 	static int moduleIdCounter = 1;
 	int moduleId;
@@ -25,16 +28,17 @@ public class AnomalousTerminalScript : MonoBehaviour
 
     }
 
+	void Activate()
+	{
+        ModuleScreen.material = ScreenColorMats[0];
+        MainVCRDisplay.KillTexts();
+	}
+
 	
 	void Start()
     {
-
-    }
-	
-	
-	void Update()
-    {
-
+		ModuleScreen.material = ScreenColorMats[1];
+		MainVCRDisplay.InitializeStartup();
     }
 
 	// Twitch Plays
