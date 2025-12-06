@@ -45,14 +45,10 @@ public class HexCycle : SoftwareProgram
     public HexCycle(SoftwareProgramType programType, int programIndex) : base(programType, programIndex)
     {
         callResponse = callResponseIxes.Select(x => new { Call = phraseTypes[x[0]], Response = phraseTypes[x[1]] }).ToDictionary(x => x.Call, x => x.Response);
+        selectedWord = phraseTypes.PickRandom();
     }
 
     private string ConvertToHex(string text) => text.ToCharArray().Aggregate("", (x, y) => x + ((byte)y).ToString("X") + " ").ToUpperInvariant().Trim();
-
-    public override void ExecuteProgram()
-    {
-        selectedWord = phraseTypes.PickRandom();
-    }
 
     public override string ToString() => $"Call word: {selectedWord}, Response word: {callResponse[selectedWord]}";
 

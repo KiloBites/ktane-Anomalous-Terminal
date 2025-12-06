@@ -10,8 +10,6 @@ public class ColorCycleDisplay : MonoBehaviour
     public TextMesh CBText;
     public MeshRenderer ColorRender;
 
-    private bool programComplete;
-
     private Coroutine flash;
     private int flashIx = 0;
 
@@ -35,16 +33,17 @@ public class ColorCycleDisplay : MonoBehaviour
         if (flash != null)
             StopCoroutine(flash);
 
-        if (programComplete)
+        if (_program.ProgramComplete)
             return;
 
         var checkInput = _program.GetInput(flashIx);
 
+        flashIx = 0;
+
         if (_program.CheckInformation(checkInput))
         {
             _module.DoLog($"{(checkInput is int ? $"Position {(int)checkInput + 1}" : $"Color {checkInput}")} has been submitted correctly. Program {_program.ProgramIndex + 1} has been completed.");
-            programComplete = true;
-            _program.Terminal.MarkProgramAsComplete(_program.ProgramIndex);
+            _program.ProgramComplete = true;
         }
         else
         {

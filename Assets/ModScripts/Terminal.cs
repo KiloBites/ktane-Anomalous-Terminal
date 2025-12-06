@@ -2,23 +2,19 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using KModkit;
 
 public class Terminal : MonoBehaviour
 {
     private List<SoftwareProgram> programs;
-
-    private bool[] completedPrograms = new bool[4];
 
     public ColorCycleDisplay ColorCycle;
     public MainMenu MainMenu;
 
     private AnomalousTerminalScript _module;
 
-    public int ProgressCount() => completedPrograms.Count(x => x);
-
-    public bool AllProgramsCompleted() => completedPrograms.All(x => x);
-
-    public void MarkProgramAsComplete(int pos) => completedPrograms[pos] = true;
+    public int ProgressCount() => programs.Count(x => x.ProgramComplete);
+    public bool AllProgramsCompleted() => programs.All(x => x.ProgramComplete);
 
     private static readonly Dictionary<SoftwareProgramType, string> programTypeNames = new Dictionary<SoftwareProgramType, string>
     {
@@ -46,7 +42,7 @@ public class Terminal : MonoBehaviour
 
     public void OpenProgram(int ix)
     {
-        if (completedPrograms[ix])
+        if (programs[ix].ProgramComplete)
             return;
 
 
@@ -67,7 +63,7 @@ public class Terminal : MonoBehaviour
             if (program.NeedColorblind == null)
                 continue;
 
-            program.NeedColorblind = !program.NeedColorblind;
+            program.NeedColorblind ^= true;
         }
     }
 
@@ -82,9 +78,17 @@ public class Terminal : MonoBehaviour
                 };
             case SoftwareProgramType.HexCycle:
                 return new HexCycle(programType, ix);
+            case SoftwareProgramType.TempCheck:
+                throw new NotImplementedException();
+            case SoftwareProgramType.PatternIntegrity:
+                throw new NotImplementedException();
+            case SoftwareProgramType.SacrificialHouse:
+                throw new NotImplementedException();
+            case SoftwareProgramType.RootedPassword:
+                return new RootedPassword(programType, ix, _module.Bomb.GetSerialNumber());
         }
 
-        throw new NotImplementedException();
+        throw new Exception("Enum is invalid");
     }
 
 
