@@ -42,7 +42,7 @@ public class HexCycle : SoftwareProgram
 
     public override string DisplayInfo => ConvertToHex(selectedWord);
 
-    public HexCycle(SoftwareProgramType programType) : base(programType)
+    public HexCycle(SoftwareProgramType programType, int programIndex) : base(programType, programIndex)
     {
         callResponse = callResponseIxes.Select(x => new { Call = phraseTypes[x[0]], Response = phraseTypes[x[1]] }).ToDictionary(x => x.Call, x => x.Response);
     }

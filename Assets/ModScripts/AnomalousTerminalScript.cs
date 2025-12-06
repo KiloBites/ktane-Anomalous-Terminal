@@ -12,6 +12,7 @@ public class AnomalousTerminalScript : MonoBehaviour
 	public KMBombInfo Bomb;
 	public KMAudio Audio;
 	public KMBombModule Module;
+	public KMColorblindMode Colorblind;
 
 	public VCRDisplay MainVCRDisplay;
 	public Material[] ScreenColorMats;
@@ -40,6 +41,8 @@ public class AnomalousTerminalScript : MonoBehaviour
 		ModuleScreen.material = ScreenColorMats[1];
 		MainVCRDisplay.InitializeStartup();
     }
+
+	public void DoLog(string msg) => Log($"[Anomalous Terminal #{moduleId}] {msg}");
 
 	// Twitch Plays
 

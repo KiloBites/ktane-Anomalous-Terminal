@@ -23,20 +23,17 @@ public class ColorCycle : SoftwareProgram
 
     private readonly ColorInfo[] seq;
     private ColorInfo answer;
+    private ColorCycleDisplay _controller;
+    public Terminal Terminal;
 
-    private static readonly Color[] flashColors =
-    {
-        Color.red,
-        new Color(1, 1, 0),
-        Color.green,
-        Color.blue
-    };
-
-    public ColorCycle(SoftwareProgramType programType) : base(programType)
+    public ColorCycle(SoftwareProgramType programType, int programIndex, ColorCycleDisplay controller, Terminal terminal) : base(programType, programIndex)
     {
         seq = Enumerable.Range(0, 6).Select(x => new ColorInfo(null, x, (ATColor)Range(0, 4))).ToArray();
         answer = GenerateAnswer();
+        _controller = controller;
+        Terminal = terminal;
 
+        _controller.AssignProgram(this);
     }
 
     public override bool CheckInformation(object other)
@@ -49,27 +46,22 @@ public class ColorCycle : SoftwareProgram
         return false;
     }
 
-    public override void ExecuteProgram()
-    {
-        throw new NotImplementedException();
-    }
-
-    public override IEnumerator SoftwareAnim()
-    {
-        yield return new WaitForSeconds(0.2f);
-
-        while (true)
-        {
-
-        }
-    }
-
     public object GetInput(int ix)
     {
         if (answer.NeedDigit == null)
             return seq[ix].Color;
 
         return seq[ix].Index.Value;
+    }
+
+    public void StartFlashingSequence() => _controller.BeginSequence(seq.Select(x => x.Color).ToList());
+
+    public string GetWrongInput(object input)
+    {
+        if (input is int && answer.Index != null)
+            return (answer.Index.Value + 1).ToString();
+
+        return answer.Color.ToString().ToLowerInvariant();
     }
 
     private ColorInfo GenerateAnswer()
@@ -169,5 +161,6 @@ public class ColorCycle : SoftwareProgram
         throw new Exception("Enum index is invalid.");
     }
 
-
+    public override string ToString() => $"Answer: {(answer.NeedDigit == null ? $"Color {answer.Color}" : $"Position {answer.Index.Value + 1}")}";
+    public override string DisplayInfo => $"Color Sequence: [{seq.Select(x => x.Color).Join()}]"; // This should only be used for logging and not much else.
 }
