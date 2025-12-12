@@ -74,7 +74,7 @@ public class Motherboard : MonoBehaviour
     {
         selectedSequence = colorSequences.PickRandom();
 
-        Module.DoLog($"Color sequence selected: {Array.IndexOf(colorSequences, selectedSequence) + 1} ({selectedSequence.Join()})");
+        Module.DoLog($"Color sequence selected: {colorSequences.IndexOf(x => x.SequenceEqual(selectedSequence)) + 1} ({selectedSequence.Join()})");
 
         pinsToShort = colorsToPinsToShort[selectedSequence];
 

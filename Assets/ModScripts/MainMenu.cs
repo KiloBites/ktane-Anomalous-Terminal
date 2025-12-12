@@ -5,10 +5,12 @@ using UnityEngine;
 
 public class MainMenu : MonoBehaviour
 {
-    public TextMesh ProgressText, ProgramInfoDisplay;
+    public TextMesh ProgressText, ProgramInfoDisplay, Date;
     public KMSelectable[] ProgramButtons;
 
     private Terminal _terminal;
+
+    private bool programOpened;
 
 
     void Awake()
@@ -21,7 +23,17 @@ public class MainMenu : MonoBehaviour
         }
     }
 
+    void Update()
+    {
+        if (programOpened)
+            return;
+
+        Date.text = DateTime.Now.ToString("dddd, MMMM dd, yyyy h:mm:ss tt");
+    }
+
     public void AssignTerminal(Terminal terminal) => _terminal = terminal;
+
+    public void MarkProgramAsClosed() => programOpened = false;
 
     void Highlight(KMSelectable button)
     {
@@ -36,9 +48,14 @@ public class MainMenu : MonoBehaviour
 
     void ButtonPress(KMSelectable button)
     {
-        if (_terminal.AllProgramsCompleted())
+        if (_terminal.AllProgramsCompleted() || programOpened)
             return;
 
+
+        _terminal.Module.Audio.PlaySoundAtTransform("OpenProgram", transform);
         _terminal.OpenProgram(Array.IndexOf(ProgramButtons, button));
+
+        EndHighlight();
+        programOpened = true;
     }
 }

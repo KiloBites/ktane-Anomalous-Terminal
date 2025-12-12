@@ -40,6 +40,16 @@ public class Terminal : MonoBehaviour
         programs = shuffledPrograms.Select((x, i) => ObtainProgram(x, i)).ToList();
 
         Module.DoLog($"The following programs selected are: {programs.Select((x, i) => i == 3 ? $"and {programTypeNames[x.ProgramType]}" : programTypeNames[x.ProgramType]).Join(", ")}");
+
+        foreach (var program in programs)
+        {
+            Module.DoLog($"{programTypeNames[program.ProgramType]}:");
+
+            if (program.ProgramType == SoftwareProgramType.ColorCycle)
+                Module.DoLog(program.DisplayInfo);
+
+            Module.DoLog(program.ToString());
+        }
     }
 
     public void OpenProgram(int ix)

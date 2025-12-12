@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Linq;
 using UnityEngine;
 using static UnityEngine.Random;
@@ -9,6 +10,9 @@ public class VCRDisplay : MonoBehaviour
 
     private Coroutine startup;
     private Coroutine[] textCoroutines = new Coroutine[3];
+
+    [NonSerialized]
+    public Coroutine Glitch;
 
     private enum TextAction
     {
@@ -42,6 +46,90 @@ public class VCRDisplay : MonoBehaviour
         startup = StartCoroutine(MainStartup());
     }
 
+    public void InitializeGlitch(float clipDuration, MeshRenderer screen) => Glitch = StartCoroutine(DoCreepyShit(clipDuration, screen));
+
+    IEnumerator DoCreepyShit(float clipDuration, MeshRenderer screen)
+    {
+        Coroutine theCreepy = null, crashOut;
+
+        var oldColor = screen.material.color;
+
+        crashOut = StartCoroutine(CrashOutBro(screen));
+
+        switch (Range(0, 3))
+        {
+            case 0:
+                theCreepy = StartCoroutine(SprayWithHell());
+                break;
+            case 1:
+                theCreepy = StartCoroutine(FlashyFlashFlash());
+                break;
+            case 2:
+                theCreepy = StartCoroutine(OneTwoThree());
+                break;
+        }
+
+        yield return new WaitForSeconds(clipDuration);
+
+        StopCoroutine(theCreepy);
+        StopCoroutine(crashOut);
+        screen.material.color = oldColor;
+        KillTextsAfterGlitch();
+        Glitch = null;
+    }
+
+    IEnumerator CrashOutBro(MeshRenderer screen)
+    {
+        while (true)
+        {
+            var myEyes = Range(0.4f, 1);
+            screen.material.color = ColorWithSingleValue(myEyes);
+            yield return new WaitForSeconds(Range(0.01f, 0.1f));
+        }
+    }
+
+    private Color ColorWithSingleValue(float v) => new Color(v, v, v);
+
+    IEnumerator SprayWithHell()
+    {
+        var helpMeGetMeOut = Enumerable.Repeat("HELP", 4).ToArray();
+
+        foreach (var vcrText in MainVCRTexts)
+            for (int i = 0; i < helpMeGetMeOut.Length; i++)
+            {
+                vcrText.text += helpMeGetMeOut[i];
+                if (i != 3)
+                    vcrText.text += " ";
+                yield return new WaitForSeconds(0.1f);
+            }
+    }
+
+    IEnumerator FlashyFlashFlash()
+    {
+        while (true)
+        {
+            MainVCRTexts[1].text = startupTexts.PickRandom();
+            yield return new WaitForSeconds(Range(0.04f, 0.2f));
+            MainVCRTexts[1].text = string.Empty;
+            yield return new WaitForSeconds(Range(0.04f, 0.2f));
+        }
+    }
+
+    IEnumerator OneTwoThree()
+    {
+        while (true)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                var randomPhrase = (i == 1 ? startupTexts : startupTexts.Where(x => x.Length < 10)).PickRandom();
+
+                MainVCRTexts[i].text = randomPhrase;
+                yield return new WaitForSeconds(0.4f);
+                MainVCRTexts[i].text = string.Empty;
+            }
+        }
+    }
+
     IEnumerator MainStartup()
     {
         while (true)
@@ -66,7 +154,7 @@ public class VCRDisplay : MonoBehaviour
         yield return null;
 
         var repeatNum = Range(1, 4) + 1;
-        var randomPhrase = ix == 1 ? startupTexts.PickRandom() : startupTexts.Where(x => x.Length < 10).PickRandom();
+        var randomPhrase = (ix == 1 ? startupTexts : startupTexts.Where(x => x.Length < 10)).PickRandom();
 
         MainVCRTexts[ix].text = string.Empty;
 
@@ -88,6 +176,12 @@ public class VCRDisplay : MonoBehaviour
                 MainVCRTexts[ix].text = randomPhrase;
                 break;
         }
+    }
+
+    void KillTextsAfterGlitch()
+    {
+        foreach (var text in MainVCRTexts)
+            text.text = string.Empty;
     }
 
     public void KillTexts()
