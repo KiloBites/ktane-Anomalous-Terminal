@@ -10,8 +10,8 @@ public class Terminal : MonoBehaviour
 
     public ColorCycleDisplay ColorCycle;
     public MainMenu MainMenu;
-
-    private AnomalousTerminalScript _module;
+    public AnomalousTerminalScript Module;
+    public TerminalBIOS Bios;
 
     public int ProgressCount() => programs.Count(x => x.ProgramComplete);
     public bool AllProgramsCompleted() => programs.All(x => x.ProgramComplete);
@@ -29,7 +29,7 @@ public class Terminal : MonoBehaviour
     void Start()
     {
         MainMenu.AssignTerminal(this);
-        ColorCycle.AssignModule(_module);
+        ColorCycle.AssignTerminal(this);
     }
 
     public void GeneratePrograms()
@@ -38,6 +38,8 @@ public class Terminal : MonoBehaviour
         var shuffledPrograms = programEnums.ToList().Shuffle().Take(4);
 
         programs = shuffledPrograms.Select((x, i) => ObtainProgram(x, i)).ToList();
+
+        Module.DoLog($"The following programs selected are: {programs.Select((x, i) => i == 3 ? $"and {programTypeNames[x.ProgramType]}" : programTypeNames[x.ProgramType]).Join(", ")}");
     }
 
     public void OpenProgram(int ix)
@@ -50,6 +52,8 @@ public class Terminal : MonoBehaviour
         {
             case SoftwareProgramType.ColorCycle:
                 ColorCycle.gameObject.SetActive(true);
+                ColorCycle ccProgram = (ColorCycle)programs[ix];
+                ccProgram.StartFlashingSequence();
                 break;
         }
     }
@@ -74,7 +78,7 @@ public class Terminal : MonoBehaviour
             case SoftwareProgramType.ColorCycle:
                 return new ColorCycle(programType, ix, ColorCycle, this)
                 {
-                    NeedColorblind = _module.Colorblind.ColorblindModeActive
+                    NeedColorblind = Module.Colorblind.ColorblindModeActive
                 };
             case SoftwareProgramType.HexCycle:
                 return new HexCycle(programType, ix);
@@ -85,7 +89,7 @@ public class Terminal : MonoBehaviour
             case SoftwareProgramType.SacrificialHouse:
                 throw new NotImplementedException();
             case SoftwareProgramType.RootedPassword:
-                return new RootedPassword(programType, ix, _module.Bomb.GetSerialNumber());
+                return new RootedPassword(programType, ix, Module.Bomb.GetSerialNumber());
         }
 
         throw new Exception("Enum is invalid");

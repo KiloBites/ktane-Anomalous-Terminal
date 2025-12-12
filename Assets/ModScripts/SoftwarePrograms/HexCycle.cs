@@ -44,7 +44,7 @@ public class HexCycle : SoftwareProgram
 
     public HexCycle(SoftwareProgramType programType, int programIndex) : base(programType, programIndex)
     {
-        callResponse = callResponseIxes.Select(x => new { Call = phraseTypes[x[0]], Response = phraseTypes[x[1]] }).ToDictionary(x => x.Call, x => x.Response);
+        callResponse = callResponseIxes.ToDictionary(x => phraseTypes[x[0]], x => phraseTypes[x[1]]);
         selectedWord = phraseTypes.PickRandom();
     }
 

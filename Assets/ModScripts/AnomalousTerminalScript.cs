@@ -15,6 +15,8 @@ public class AnomalousTerminalScript : MonoBehaviour
 	public KMColorblindMode Colorblind;
 
 	public VCRDisplay MainVCRDisplay;
+	public TerminalBIOS Bios;
+	public Motherboard Board;
 	public Material[] ScreenColorMats;
 	public MeshRenderer ModuleScreen;
 
@@ -24,15 +26,20 @@ public class AnomalousTerminalScript : MonoBehaviour
 
 	void Awake()
     {
-
 		moduleId = moduleIdCounter++;
 
+		Module.OnActivate += Activate;
+
+		var motherboardScale = Board.transform.localScale;
+
+		Board.transform.localScale = new Vector3(motherboardScale.x, 0.05f, motherboardScale.z);
     }
 
 	void Activate()
 	{
         ModuleScreen.material = ScreenColorMats[0];
         MainVCRDisplay.KillTexts();
+		Bios.InitializeBIOS(false);
 	}
 
 	

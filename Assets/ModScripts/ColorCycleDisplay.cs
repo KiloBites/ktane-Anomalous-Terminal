@@ -14,7 +14,7 @@ public class ColorCycleDisplay : MonoBehaviour
     private int flashIx = 0;
 
     private ColorCycle _program;
-    private AnomalousTerminalScript _module;
+    private Terminal _terminal;
 
     private static readonly Color[] colorOutputs =
     {
@@ -26,7 +26,9 @@ public class ColorCycleDisplay : MonoBehaviour
 
     public void BeginSequence(List<ATColor> colorSeq) => flash = StartCoroutine(StartFlash(colorSeq));
     public void AssignProgram(ColorCycle program) => _program = program;
-    public void AssignModule(AnomalousTerminalScript module) => _module = module; 
+    public void AssignTerminal(Terminal terminal) => _terminal = terminal;
+
+    void Awake() => ColorButton.OnInteract += () => { ButtonPress(); return false; };
 
     void ButtonPress()
     {
@@ -42,13 +44,13 @@ public class ColorCycleDisplay : MonoBehaviour
 
         if (_program.CheckInformation(checkInput))
         {
-            _module.DoLog($"{(checkInput is int ? $"Position {(int)checkInput + 1}" : $"Color {checkInput}")} has been submitted correctly. Program {_program.ProgramIndex + 1} has been completed.");
+            _terminal.Module.DoLog($"{(checkInput is int ? $"Position {(int)checkInput + 1}" : $"Color {checkInput}")} has been submitted correctly. Program {_program.ProgramIndex + 1} has been completed.");
             _program.ProgramComplete = true;
         }
         else
         {
-            _module.DoLog($"Submitted {(checkInput is int ? $"position {(int)checkInput + 1}" : $"color {checkInput.ToString().ToLowerInvariant()}")}, but the answer is {_program.GetWrongInput(checkInput)}. Strike!");
-            _module.Module.HandleStrike();
+            _terminal.Module.DoLog($"Submitted {(checkInput is int ? $"position {(int)checkInput + 1}" : $"color {checkInput.ToString().ToLowerInvariant()}")}, but the answer is {_program.GetWrongInput(checkInput)}. Strike!");
+            _terminal.Module.Module.HandleStrike();
             _program.StartFlashingSequence();
         }
     }
@@ -59,10 +61,9 @@ public class ColorCycleDisplay : MonoBehaviour
 
         while (true)
         {
-            // TODO: Make DOS PC speaker related sounds
-
             while (flashIx < 6)
             {
+                _terminal.Module.Audio.PlaySoundAtTransform(colorSeq[flashIx].ToString(), transform);
                 ColorRender.material.color = colorOutputs[(int)colorSeq[flashIx]];
                 CBText.text = _program.NeedColorblind.Value ? colorSeq[flashIx].ToString()[0].ToString() : string.Empty;
                 CBText.color = colorSeq[flashIx] == ATColor.Yellow ? Color.black : Color.white;
