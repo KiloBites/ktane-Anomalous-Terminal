@@ -178,7 +178,6 @@ public class TerminalBIOS : MonoBehaviour
             yield return new WaitForSeconds(1);
             Audio.PlaySoundAtTransform("EnterMainMenu", transform);
             yield return new WaitForSeconds(0.4f);
-            FirstBoot = false;
             TerminalRunning = null;
         }
     }

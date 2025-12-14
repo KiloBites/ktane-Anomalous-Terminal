@@ -14,7 +14,18 @@ MonoBehaviour:
   id: anomalousTerminal
   title: Anomalous Terminal
   author: Kilo Bites
-  description: 
+  description: 'Every copy of the operating system is personalized.
+
+
+    Free an old terminal from a cursed anomaly.
+
+
+    This is an entry to Modder Secret Santa Season 2.
+
+
+    Modeling by Red Penguin
+
+    Sound Design by Jacobo'
   version: 1
   outputFolder: build
   debugBuild: 1

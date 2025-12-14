@@ -123,6 +123,9 @@ public class Terminal : MonoBehaviour
                 Module.Module.HandleStrike();
             }
             Bootup();
+
+            if (Bios.FirstBoot)
+                Bios.FirstBoot = false;
         }
 
             
