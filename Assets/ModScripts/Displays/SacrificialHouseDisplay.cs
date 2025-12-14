@@ -77,7 +77,7 @@ public class SacrificialHouseDisplay : MonoBehaviour
             case 28:
                 _program.CheckCommandInput(commandInput, out message);
                 message = message.WordWrap(25).Join("\n");
-                CurrentlyTyping = StartCoroutine(TypeMessage(commandInput.ToUpperInvariant() == "SACRIFICE"));
+                CurrentlyTyping = StartCoroutine(TypeMessage(commandInput.ToUpperInvariant() == "SACRIFICE", commandInput.ToUpperInvariant() == "HIDE"));
                 commandInput = string.Empty;
                 CommandDisplay.text = string.Empty;
                 break;
@@ -100,7 +100,7 @@ public class SacrificialHouseDisplay : MonoBehaviour
 
     }
 
-    IEnumerator TypeMessage(bool check)
+    IEnumerator TypeMessage(bool check = false, bool hiding = false)
     {
     reset:
 
@@ -124,8 +124,9 @@ public class SacrificialHouseDisplay : MonoBehaviour
                 yield return new WaitUntil(() => _terminal.CreepyShit == null);
                 _terminal.Module.Module.HandleStrike();
                 _program.Reset();
-                message = _program.ObtainMessage();
+                message = _program.ObtainMessage().WordWrap(25).Join("\n");
                 _terminal.ToggleObject(_program.ProgramIndex, true);
+                check = false;
                 goto reset;
             }
             else if (!_program.InvalidSacrifice())
@@ -135,8 +136,13 @@ public class SacrificialHouseDisplay : MonoBehaviour
                 _terminal.DoCreepyShit(_program.ProgramIndex);
             }
         }
-
-
-        CurrentlyTyping = null;
+        else if (hiding)
+        {
+            yield return new WaitForSeconds(1);
+            message = _program.ObtainMessage().WordWrap(25).Join("\n");
+            hiding = false;
+            goto reset;
+        }
+            CurrentlyTyping = null;
     }
 }

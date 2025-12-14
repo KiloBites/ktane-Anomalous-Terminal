@@ -73,7 +73,7 @@ public class TemperatureCheckDisplay : MonoBehaviour
 
         MiscInfo.color = Color.white;
 
-        while (loadCount < 4)
+        while (loadCount < 3)
         {
             MiscInfo.text = "Scanning";
             var dotCount = 0;
@@ -81,9 +81,10 @@ public class TemperatureCheckDisplay : MonoBehaviour
             while (dotCount < 3)
             {
                 MiscInfo.text += '.';
-                yield return new WaitForSeconds(1);
+                yield return new WaitForSeconds(0.4f);
                 dotCount++;
             }
+            loadCount++;
         }
 
         if (_program.AnomalyPresent)
@@ -106,7 +107,7 @@ public class TemperatureCheckDisplay : MonoBehaviour
 
         MiscInfo.color = Color.white;
 
-        while (loadCount < 4)
+        while (loadCount < 3)
         {
             MiscInfo.text = "Checking Temperature";
             var dotCount = 0;
@@ -114,9 +115,10 @@ public class TemperatureCheckDisplay : MonoBehaviour
             while (dotCount < 3)
             {
                 MiscInfo.text += '.';
-                yield return new WaitForSeconds(1);
+                yield return new WaitForSeconds(0.4f);
                 dotCount++;
             }
+            loadCount++;
         }
 
         if (_program.CheckInformation(_program.CurrentTemperature))

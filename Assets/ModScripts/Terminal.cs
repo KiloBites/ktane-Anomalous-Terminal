@@ -157,7 +157,13 @@ public class Terminal : MonoBehaviour
     public void OpenProgram(int ix)
     {
         if (programsCompleted[ix])
+        {
+            Module.Audio.PlaySoundAtTransform("AlreadyCompleted", transform);
             return;
+        }
+            
+
+        Module.Audio.PlaySoundAtTransform("OpenProgram", transform);
 
         MainMenu.gameObject.SetActive(false);
         programObjects[ix].SetActive(true);
@@ -220,8 +226,9 @@ public class Terminal : MonoBehaviour
         Module.DoCreepyShit();
         yield return new WaitUntil(() => Module.MainVCRDisplay.Glitch == null);
         MainMenu.MarkProgramAsClosed();
-        MainMenu.UpdateProgramCompletions(programs.Select(x => x.ProgramComplete).ToArray());
+        MainMenu.UpdateProgramCompletions(programsCompleted);
         MainMenu.gameObject.SetActive(true);
+        MainMenu.ShowProgress();
         Module.Audio.PlaySoundAtTransform("ProgramComplete", transform);
         Module.RaiseModule(ProgressCount() == 1);
         CreepyShit = null;

@@ -105,7 +105,7 @@ public class TerminalBIOS : MonoBehaviour
             BiosStuff[1].SetActive(true);
             Screen.material = ScreenColors[1];
 
-            yield return new WaitForSeconds(0.3f);
+            yield return new WaitForSeconds(0.5f);
 
             for (int i = 0; i < 3; i++)
             {

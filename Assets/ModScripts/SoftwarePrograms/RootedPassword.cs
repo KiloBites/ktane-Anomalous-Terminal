@@ -10,7 +10,7 @@ public class RootedPassword : SoftwareProgram
     {
         convertedFromSN = sn.Select(x => char.IsLetter(x) ? "-ABCDEFGHIJKLMNOPQRSTUVWXYZ".IndexOf(x) % 10 : x - '0').ToArray();
 
-        answer = Enumerable.Range(0, 6).Select(x => x == 0 ? GetDigitalRoot(convertedFromSN) : GetDigitalRoot(convertedFromSN.Skip(x + 1).ToArray())).ToArray();
+        answer = Enumerable.Range(0, 6).Select(x => x == 0 ? GetDigitalRoot(convertedFromSN) : GetDigitalRoot(convertedFromSN.Skip(x).ToArray())).ToArray();
     }
 
     public override bool CheckInformation(object other)

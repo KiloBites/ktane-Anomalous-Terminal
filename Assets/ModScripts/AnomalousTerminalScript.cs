@@ -84,9 +84,9 @@ public class AnomalousTerminalScript : MonoBehaviour
 		Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.SelectionTick, StatusLightButton.transform);
 
 		if (moduleSolved || !Terminal.AllProgramsCompleted() || motherboardOpen || Terminal.WaitForBootup != null)
-			return;
+            return;
 
-		ToggleMotherboard(true);
+		ToggleTheMotherboard(true);
 	}
 
 	public void RaiseModule(bool firstTime) => rising = StartCoroutine(Rise(firstTime));
@@ -120,7 +120,7 @@ public class AnomalousTerminalScript : MonoBehaviour
 		while (true)
 		{
 			var oldPos = EntireModule.localPosition;
-			var newPos = new Vector3(oldPos.x, oldPos.y + 0.01f, oldPos.z);
+			var newPos = new Vector3(oldPos.x, oldPos.y - 0.01f, oldPos.z);
 
 			var elapsed = 0f;
 			var duration = 1.5f;
@@ -158,14 +158,22 @@ public class AnomalousTerminalScript : MonoBehaviour
 
 	IEnumerator DoDrop()
 	{
-		StopCoroutine(rising);
-		StopCoroutine(floating);
-		rising = null;
-		floating = null;
+		if (rising != null)
+		{
+			StopCoroutine(rising);
+			rising = null;
+		}
+		if (floating != null)
+		{
+			StopCoroutine(floating);
+			floating = null;
+		}
 
-		rising = StartCoroutine(DropPositionBackIntoPlace());
+		if (EntireModule.localPosition != originalModulePosition)
+            rising = StartCoroutine(DropPositionBackIntoPlace());
 
-		yield return new WaitUntil(() => rising == null);
+
+        yield return new WaitUntil(() => rising == null);
 
 		rising = StartCoroutine(ToggleMotherboard(true));
 	}
@@ -189,8 +197,8 @@ public class AnomalousTerminalScript : MonoBehaviour
 
 		EntireModule.localPosition = originalModulePosition;
 		Audio.PlaySoundAtTransform("LandingImpact", transform);
-		Particles.Emit(90);
-		yield return new WaitForSeconds(1.5f);
+        Particles.Emit(5);
+        yield return new WaitForSeconds(1.5f);
 		rising = null;
 	}
 
@@ -203,21 +211,21 @@ public class AnomalousTerminalScript : MonoBehaviour
         }
 
 		var elapsed = 0f;
-		var duration = opening ? 9f : 3f;
+		var duration = opening ? 10f : 3f;
 
 		while (elapsed < duration)
 		{
 			if (opening)
 			{
-				Main.localPosition = new Vector3(originalMainPosition.x, Easing.OutSine(elapsed, originalMainPosition.y, newMainPosition.y, duration), originalMainPosition.z);
-				Main.localEulerAngles = new Vector3(Easing.OutSine(duration, 0, -90, duration), 0, 0);
-				Board.transform.localScale = new Vector3(0.1f, Easing.OutSine(elapsed, 0.05f, 0.1f, duration), 0.1f);
+				Main.localPosition = new Vector3(originalMainPosition.x, Easing.InCirc(elapsed, originalMainPosition.y, newMainPosition.y, duration), originalMainPosition.z);
+				Main.localEulerAngles = new Vector3(Easing.InOutQuint(elapsed, 0, -90, duration), 0, 0);
+				Board.transform.localScale = new Vector3(0.1f, Easing.InCirc(elapsed, 0.05f, 0.1f, duration), 0.1f);
 			}
 			else
 			{
-				Main.localPosition = new Vector3(originalMainPosition.x, Easing.OutSine(elapsed, newMainPosition.y, originalMainPosition.y, duration), originalMainPosition.z);
-				Main.localEulerAngles = new Vector3(Easing.OutSine(duration, -90, 0, duration), 0, 0);
-                Board.transform.localScale = new Vector3(0.1f, Easing.OutSine(elapsed, 0.1f, 0.05f, duration), 0.1f);
+				Main.localPosition = new Vector3(originalMainPosition.x, Easing.InCirc(elapsed, newMainPosition.y, originalMainPosition.y, duration), originalMainPosition.z);
+				Main.localEulerAngles = new Vector3(Easing.InOutQuint(elapsed, -90, 0, duration), 0, 0);
+                Board.transform.localScale = new Vector3(0.1f, Easing.InCirc(elapsed, 0.1f, 0.05f, duration), 0.1f);
             }
 			yield return null;
 			elapsed += Time.deltaTime;
@@ -231,10 +239,12 @@ public class AnomalousTerminalScript : MonoBehaviour
 			Audio.PlaySoundAtTransform("ModuleClose", transform);
 			yield return new WaitForSeconds(2);
 			Terminal.Bios.InitializeBIOS(true, Board.InputSequences, Board.PinPairsShortedCorrectly);
+			Terminal.WaitForStartup();
 			motherboardOpen = false;
 		}
 		else
 		{
+			ModuleScreen.material = ScreenColorMats[0];
             Board.SetupBoard();
 			MainVCRDisplay.EndTransition();
 			motherboardOpen = true;

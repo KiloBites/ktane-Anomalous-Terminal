@@ -213,16 +213,18 @@ public class Motherboard : MonoBehaviour
 
             pinsShortCount++;
 
+            InputSequences.Add(inputs.ToList());
+            inputs.Clear();
+
             if (pinsShortCount == 3)
             {
                 Module.DoLog($"Only {PinPairsShortedCorrectly.Count(x => x)}/3 correct. The pin pairs shortened are as follows: {InputSequences.Select(x => $"{x.Join(", ")}").Join(", ")}");
                 Module.ToggleTheMotherboard(false);
+                Pins.ForEach(x => x.gameObject.SetActive(false));
                 return;
             }
 
             ledPlaying = StartCoroutine(ShowPinCount());
-            InputSequences.Add(inputs.ToList());
-            inputs.Clear();
         }
         else
             inputs.Add(ix);

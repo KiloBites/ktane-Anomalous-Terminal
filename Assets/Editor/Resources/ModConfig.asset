@@ -29,4 +29,4 @@ MonoBehaviour:
   version: 1
   outputFolder: build
   debugBuild: 1
-  previewImage: {fileID: 0}
+  previewImage: {fileID: 2800000, guid: 9a4c437b0f59573449a04ea6a82f9404, type: 3}

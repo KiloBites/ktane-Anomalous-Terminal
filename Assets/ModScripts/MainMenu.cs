@@ -57,14 +57,13 @@ public class MainMenu : MonoBehaviour
     {
         button.AddInteractionPunch(0.2f);
 
-        if (_terminal.AllProgramsCompleted() || programOpened)
+        if (_terminal.AllProgramsCompleted())
         {
             _terminal.Module.Audio.PlaySoundAtTransform("AlreadyCompleted", button.transform);
             return;
         }
             
-
-        _terminal.Module.Audio.PlaySoundAtTransform("OpenProgram", transform);
+        
         _terminal.OpenProgram(Array.IndexOf(ProgramButtons, button));
 
         EndHighlight();
