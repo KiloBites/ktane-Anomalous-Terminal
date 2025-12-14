@@ -48,9 +48,12 @@ public class Motherboard : MonoBehaviour
 
     private ATColor[] selectedSequence;
     private int[][] pinsToShort;
+
     private List<int> inputs = new List<int>();
-    private List<List<int>> inputSequences = new List<List<int>>();
-    private bool[] pinPairsShortedCorrectly = new bool[3];
+    [NonSerialized]
+    public List<List<int>> InputSequences = new List<List<int>>();
+    [NonSerialized]
+    public bool[] PinPairsShortedCorrectly = new bool[3];
     private int pinsShortCount = 0;
 
     private Coroutine ledPlaying;
@@ -61,14 +64,20 @@ public class Motherboard : MonoBehaviour
         cbActive = Module.Colorblind.ColorblindModeActive;
 
         foreach (KMSelectable pin in Pins)
-        {
             pin.OnInteract += () => { PinPress(pin); return false; };
-            pin.gameObject.SetActive(false);
-        }
             
 
         colorsToPinsToShort = Setup();
     }
+
+    public void Reset()
+    {
+        InputSequences.Clear();
+        PinPairsShortedCorrectly = new bool[3];
+        inputs.Clear();
+    }
+
+    void Start() => Pins.ForEach(x => x.gameObject.SetActive(false));
 
     public void SetupBoard()
     {
@@ -191,8 +200,10 @@ public class Motherboard : MonoBehaviour
 
         if (inputs.Count == 1)
         {
+            Module.Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.CapacitorPop, pin.transform);
+
             inputs.Add(ix);
-            pinPairsShortedCorrectly[pinsShortCount] = inputs.SequenceEqual(pinsToShort[pinsShortCount]);
+            PinPairsShortedCorrectly[pinsShortCount] = inputs.SequenceEqual(pinsToShort[pinsShortCount]);
 
             if (ledPlaying != null)
             {
@@ -202,11 +213,15 @@ public class Motherboard : MonoBehaviour
 
             pinsShortCount++;
 
-            if (pinsShortCount == 3) // Todo: Make the module fall back into place and check to see if the pins in sequence are shorted correctly.
+            if (pinsShortCount == 3)
+            {
+                Module.DoLog($"Only {PinPairsShortedCorrectly.Count(x => x)}/3 correct. The pin pairs shortened are as follows: {InputSequences.Select(x => $"{x.Join(", ")}").Join(", ")}");
+                Module.ToggleTheMotherboard(false);
                 return;
+            }
 
             ledPlaying = StartCoroutine(ShowPinCount());
-            inputSequences.Add(inputs.ToList());
+            InputSequences.Add(inputs.ToList());
             inputs.Clear();
         }
         else

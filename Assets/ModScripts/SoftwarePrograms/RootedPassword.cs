@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 public class RootedPassword : SoftwareProgram
@@ -16,9 +15,9 @@ public class RootedPassword : SoftwareProgram
 
     public override bool CheckInformation(object other)
     {
-        if (other is int[])
+        if (other is List<int>)
         {
-            var answerToCheck = (int[])other;
+            var answerToCheck = other as List<int>;
 
             return answerToCheck.SequenceEqual(answer);
         }
@@ -27,6 +26,8 @@ public class RootedPassword : SoftwareProgram
     }
 
     public override string ToString() => $"Rooted password of {convertedFromSN.Join("")} is: {answer.Join("")}";
+
+    public override string DisplayInfo => answer.Join("");
 
     private int GetDigitalRoot(int[] numbers)
     {

@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using static UnityEngine.Random;
 using static UnityEngine.Debug;
 
 public class AnomalousTerminalScript : MonoBehaviour 
@@ -19,18 +18,29 @@ public class AnomalousTerminalScript : MonoBehaviour
 	public Transform EntireModule, Main;
 
 	public VCRDisplay MainVCRDisplay;
-	public TerminalBIOS Bios; // This is temporary. This will be replaced with a Terminal class field once everything is set.
+	public Terminal Terminal;
 	public Motherboard Board;
 	public Material[] ScreenColorMats;
 	public MeshRenderer ModuleScreen;
 
 	public AudioClip[] GlitchyShit;
+	public AudioClip GlitchyErrorSound;
+
+	public ParticleSystem Particles;
 
 	static int moduleIdCounter = 1;
 	int moduleId;
 	private bool moduleSolved;
 
-	private Coroutine rising, wiggling;
+	[NonSerialized]
+	public bool IsModuleFocused;
+
+	private bool motherboardOpen;
+
+	private Coroutine rising, floating, dropping;
+
+	private Vector3 originalModulePosition, motherboardScale;
+	private Vector3 originalMainPosition, newMainPosition;
 
 	void Awake()
     {
@@ -38,18 +48,26 @@ public class AnomalousTerminalScript : MonoBehaviour
 
 		Module.OnActivate += Activate;
 
+		Module.GetComponent<KMSelectable>().OnFocus += () => { IsModuleFocused = true; };
+		Module.GetComponent<KMSelectable>().OnDefocus += () => { IsModuleFocused = false; };
+
 		StatusLightButton.OnInteract += () => { StatusPress(); return false; };
 
-		var motherboardScale = Board.transform.localScale;
+		motherboardScale = Board.transform.localScale;
 
 		Board.transform.localScale = new Vector3(motherboardScale.x, 0.05f, motherboardScale.z);
+
+		originalModulePosition = EntireModule.localPosition;
+		originalMainPosition = Main.localPosition;
+		newMainPosition = new Vector3(originalMainPosition.x, 0.02f, originalMainPosition.z);
     }
 
 	void Activate()
 	{
         ModuleScreen.material = ScreenColorMats[0];
         MainVCRDisplay.KillTexts();
-		Bios.InitializeBIOS(false);
+		Terminal.Bios.InitializeBIOS(false);
+		Terminal.WaitForStartup();
 	}
 
 	
@@ -57,26 +75,35 @@ public class AnomalousTerminalScript : MonoBehaviour
     {
 		ModuleScreen.material = ScreenColorMats[1];
 		MainVCRDisplay.InitializeStartup();
+		Terminal.GeneratePrograms();
     }
 
 	void StatusPress()
 	{
 		StatusLightButton.AddInteractionPunch(0.4f);
+		Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.SelectionTick, StatusLightButton.transform);
 
-		if (moduleSolved)
+		if (moduleSolved || !Terminal.AllProgramsCompleted() || motherboardOpen || Terminal.WaitForBootup != null)
 			return;
+
+		ToggleMotherboard(true);
 	}
+
+	public void RaiseModule(bool firstTime) => rising = StartCoroutine(Rise(firstTime));
 
 	IEnumerator Rise(bool firstTime)
 	{
 		var oldPos = EntireModule.localPosition;
-		var newPos = new Vector3(oldPos.x, firstTime ? 0.03f : 0.01f * 2, oldPos.z); // Todo: Change the constant value of the otherwise ternary operator condition to use ProgressCount() from the terminal class.
+		var newPos = new Vector3(oldPos.x, firstTime ? 0.03f : 0.01f * Terminal.ProgressCount(), oldPos.z);
 
 		var duration = 1.5f;
 		var elapsed = 0f;
 
-		if (wiggling == null)
-			wiggling = StartCoroutine(Wiggle());
+        if (floating != null)
+        {
+            StopCoroutine(floating);
+            floating = null;
+		}
 
 		while (elapsed < duration)
 		{
@@ -84,25 +111,139 @@ public class AnomalousTerminalScript : MonoBehaviour
 			yield return null;
 			elapsed += Time.deltaTime;
 		}
+        floating = StartCoroutine(Floating());
+        rising = null;
+	}
 
-		EntireModule.localPosition = newPos;
+	IEnumerator Floating()
+	{
+		while (true)
+		{
+			var oldPos = EntireModule.localPosition;
+			var newPos = new Vector3(oldPos.x, oldPos.y + 0.01f, oldPos.z);
+
+			var elapsed = 0f;
+			var duration = 1.5f;
+
+			while (elapsed < duration)
+			{
+				EntireModule.localPosition = new Vector3(newPos.x, Easing.InOutSine(elapsed, oldPos.y, newPos.y, duration), newPos.z);
+				yield return null;
+				elapsed += Time.deltaTime;
+			}
+			elapsed = 0;
+
+			while (elapsed < duration)
+			{
+				EntireModule.localPosition = new Vector3(oldPos.x, Easing.InOutSine(elapsed, newPos.y, oldPos.y, duration), oldPos.z);
+                yield return null;
+                elapsed += Time.deltaTime;
+            }
+		}
+	}
+
+	public void SolveModule()
+	{
+		moduleSolved = true;
+		Module.HandlePass();
+	}
+
+	public void ToggleTheMotherboard(bool opening)
+	{
+		if (opening)
+			dropping = StartCoroutine(DoDrop());
+		else
+			rising = StartCoroutine(ToggleMotherboard(false));
+	}
+
+	IEnumerator DoDrop()
+	{
+		StopCoroutine(rising);
+		StopCoroutine(floating);
+		rising = null;
+		floating = null;
+
+		rising = StartCoroutine(DropPositionBackIntoPlace());
+
+		yield return new WaitUntil(() => rising == null);
+
+		rising = StartCoroutine(ToggleMotherboard(true));
+	}
+
+	IEnumerator DropPositionBackIntoPlace()
+	{
+		Terminal.ToggleMenu(false);
+		ModuleScreen.material = ScreenColorMats[0];
+
+		var oldPos = EntireModule.localPosition;
+
+		var duration = 0.85f;
+		var elapsed = 0f;
+
+		while (elapsed < duration)
+		{
+            EntireModule.localPosition = new Vector3(oldPos.x, Easing.InOutSine(elapsed, oldPos.y, originalModulePosition.y, duration), oldPos.z);
+			yield return null;
+			elapsed += Time.deltaTime;
+        }
+
+		EntireModule.localPosition = originalModulePosition;
+		Audio.PlaySoundAtTransform("LandingImpact", transform);
+		Particles.Emit(90);
+		yield return new WaitForSeconds(1.5f);
 		rising = null;
 	}
 
-	IEnumerator Wiggle()
+	IEnumerator ToggleMotherboard(bool opening)
 	{
-		float speed1 = 2, speed2 = 1, speed3 = Mathf.PI * 2f / 3f, maxAngle = 2.5f, variance = 0.5f;
-
-		speed1 += Range(-variance, variance);
-		speed2 += Range(-variance / 2, variance / 2);
-		speed3 += Range(-variance, variance);
-
-		while (true)
+		if (opening)
 		{
-			EntireModule.transform.localEulerAngles = new Vector3(Mathf.Sin((speed1 / 4) * Time.time) * maxAngle, Mathf.Sin((speed2 / 4) * Time.time) * maxAngle, Mathf.Sin((speed3 / 4) * Time.time) * maxAngle);
+            Audio.PlaySoundAtTransform("GlitchOpening", transform);
+			MainVCRDisplay.Transition(ModuleScreen);
+        }
+
+		var elapsed = 0f;
+		var duration = opening ? 9f : 3f;
+
+		while (elapsed < duration)
+		{
+			if (opening)
+			{
+				Main.localPosition = new Vector3(originalMainPosition.x, Easing.OutSine(elapsed, originalMainPosition.y, newMainPosition.y, duration), originalMainPosition.z);
+				Main.localEulerAngles = new Vector3(Easing.OutSine(duration, 0, -90, duration), 0, 0);
+				Board.transform.localScale = new Vector3(0.1f, Easing.OutSine(elapsed, 0.05f, 0.1f, duration), 0.1f);
+			}
+			else
+			{
+				Main.localPosition = new Vector3(originalMainPosition.x, Easing.OutSine(elapsed, newMainPosition.y, originalMainPosition.y, duration), originalMainPosition.z);
+				Main.localEulerAngles = new Vector3(Easing.OutSine(duration, -90, 0, duration), 0, 0);
+                Board.transform.localScale = new Vector3(0.1f, Easing.OutSine(elapsed, 0.1f, 0.05f, duration), 0.1f);
+            }
 			yield return null;
+			elapsed += Time.deltaTime;
 		}
+		Main.localPosition = opening ? newMainPosition : originalMainPosition;
+		Main.localEulerAngles = opening ? new Vector3(-90, 0, 0) : Vector3.zero;
+		Board.transform.localScale = new Vector3(0.1f, opening ? 0.1f : 0.05f, 0.1f);
+
+		if (!opening)
+		{
+			Audio.PlaySoundAtTransform("ModuleClose", transform);
+			yield return new WaitForSeconds(2);
+			Terminal.Bios.InitializeBIOS(true, Board.InputSequences, Board.PinPairsShortedCorrectly);
+			motherboardOpen = false;
+		}
+		else
+		{
+            Board.SetupBoard();
+			MainVCRDisplay.EndTransition();
+			motherboardOpen = true;
+        }
+			
+
+			rising = null;
 	}
+
 
 	public void DoLog(string msg) => Log($"[Anomalous Terminal #{moduleId}] {msg}");
 
@@ -115,28 +256,11 @@ public class AnomalousTerminalScript : MonoBehaviour
 		MainVCRDisplay.InitializeGlitch(randomClip.length, ModuleScreen);
 	}
 
-	public void CloseUpModule(List<List<int>> numberPairs, bool[] numbersToCheck)
+	public void CreepyErrorShit(bool caught)
 	{
-
+		Audio.PlaySoundAtTransform(GlitchyErrorSound.name, transform);
+		MainVCRDisplay.InitializeError(caught, GlitchyErrorSound.length, ModuleScreen);
 	}
-
-	// Twitch Plays
-
-
-#pragma warning disable 414
-	private readonly string TwitchHelpMessage = @"!{0} something";
-#pragma warning restore 414
-
-	IEnumerator ProcessTwitchCommand(string command)
-    {
-		string[] split = command.ToUpperInvariant().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
-		yield return null;
-    }
-
-	IEnumerator TwitchHandleForcedSolve()
-    {
-		yield return null;
-    }
 
 
 }

@@ -34,7 +34,8 @@ public class TerminalBIOS : MonoBehaviour
     public Material[] ScreenColors;
     public MeshRenderer Screen;
 
-    private bool firstBoot = true;
+    [NonSerialized]
+    public bool FirstBoot = true;
 
     private static int terminalIdCounter = 1;
     private int terminalId;
@@ -78,7 +79,7 @@ public class TerminalBIOS : MonoBehaviour
 
     IEnumerator PlaySoundUntilClipStops()
     {
-        if ((firstBoot && terminalId == 1) || !firstBoot)
+        if ((FirstBoot && terminalId == 1) || !FirstBoot)
             audioRef = Audio.PlaySoundAtTransformWithRef(Bootup.name, transform);
 
         var duration = Bootup.length;
@@ -93,7 +94,7 @@ public class TerminalBIOS : MonoBehaviour
         playAudio = null;
     }
 
-    IEnumerator RunBIOS(bool alt, List<List<int>> numberPairs = null, bool[] numbersToValidate = null)
+    IEnumerator RunBIOS(bool alt, List<List<int>> numberPairs, bool[] numbersToValidate)
     {
         playAudio = StartCoroutine(PlaySoundUntilClipStops());
 
@@ -152,36 +153,32 @@ public class TerminalBIOS : MonoBehaviour
                 LoadingBar.text += '■';
                 yield return new WaitForSeconds(0.5f);
             }
-
-            if (firstBoot)
+            if (playAudio != null)
             {
-                if (playAudio != null)
-                {
-                    StopCoroutine(playAudio);
-                    playAudio = null;
-                    audioRef?.StopSound();
-                }
-
-                if (terminalId == 1)
-                    Audio.PlaySoundAtTransform("GlitchIntro", transform);
-
-                MainText.text = "YOU ARE MINE\nVERSION 6.66";
-
-                StartCoroutine(MakeLoadingBarRed());
-                yield return new WaitForSeconds(1);
-                CopyrightText.text = Enumerable.Repeat("666", 9).Join();
-                CopyrightText.color = Color.red;
-                MainText.color = Color.red;
-                yield return new WaitForSeconds(0.3f);
-
-                firstBoot = false;
+                StopCoroutine(playAudio);
+                playAudio = null;
+                audioRef?.StopSound();
             }
-            else
-                yield return new WaitForSeconds(0.5f);
 
+            if (terminalId == 1)
+                Audio.PlaySoundAtTransform("GlitchIntro", transform);
 
+            MainText.text = "YOU ARE MINE\nVERSION 6.66";
+
+            StartCoroutine(MakeLoadingBarRed());
+            yield return new WaitForSeconds(1);
+            CopyrightText.text = Enumerable.Repeat("666", 9).Join();
+            CopyrightText.color = Color.red;
+            MainText.color = Color.red;
+            yield return new WaitForSeconds(0.3f);
             LoadingScreen.SetActive(false);
             Screen.material = ScreenColors[0];
+            yield return new WaitForSeconds(1);
+            Screen.material = ScreenColors[1];
+            yield return new WaitForSeconds(1);
+            Audio.PlaySoundAtTransform("EnterMainMenu", transform);
+            yield return new WaitForSeconds(0.4f);
+            FirstBoot = false;
             TerminalRunning = null;
         }
     }

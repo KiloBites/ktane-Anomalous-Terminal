@@ -1,6 +1,4 @@
-﻿using System.Collections;
-
-public abstract class SoftwareProgram
+﻿public abstract class SoftwareProgram
 {
     public SoftwareProgramType ProgramType { get; private set; }
     public int ProgramIndex { get; private set; }

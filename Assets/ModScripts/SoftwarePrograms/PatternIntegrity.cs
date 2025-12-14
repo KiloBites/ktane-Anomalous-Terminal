@@ -5,7 +5,7 @@ using static UnityEngine.Random;
 
 public class PatternIntegrity : SoftwareProgram
 {
-    private readonly bool[] selectedPattern;
+    public bool[] SelectedPattern;
     public bool[] ModifiedPattern;
 
     private static readonly bool[][] patterns = new[]
@@ -18,29 +18,71 @@ public class PatternIntegrity : SoftwareProgram
         "..x...xxx.xxxxx.xxx..x.x."
     }.Select(x => x.Select(y => y == 'x').ToArray()).ToArray();
 
-    private readonly List<ATColor> colorsToTransform;
+    public List<ATColor> ColorsToTransform;
 
     public PatternIntegrity(SoftwareProgramType programType, int programIndex) : base(programType, programIndex)
     {
-        selectedPattern = patterns.PickRandom();
-        ModifiedPattern = selectedPattern.ToArray();
+        SelectedPattern = patterns.PickRandom();
+        ModifiedPattern = SelectedPattern.ToArray();
 
         var colors = (ATColor[])Enum.GetValues(typeof(ATColor));
         var colorList = colors.ToList();
         colorList.Remove(ATColor.Green);
 
-        colorsToTransform = Enumerable.Range(0, 4).Select(_ => colorList.PickRandom()).ToList().Shuffle();
+        ColorsToTransform = Enumerable.Range(0, 4).Select(_ => colorList.PickRandom()).ToList().Shuffle();
 
-        if (Range(0, 2) != 0)
-            for (int i = 0; i < colorsToTransform.Count; i++)
-                ModifiedPattern = TransformPattern(ModifiedPattern, colorsToTransform[i], i);
+        if (Range(0, 2) == 0)
+            for (int i = 0; i < ColorsToTransform.Count; i++)
+                ModifiedPattern = TransformPattern(ModifiedPattern, ColorsToTransform[i], i);
     }
 
-    public override string ToString() => $"The selected pattern in reading order is: {patterns.IndexOf(x => x.SequenceEqual(selectedPattern)) + 1}";
+    public override string ToString() => $"The selected pattern in reading order is: {patterns.IndexOf(x => x.SequenceEqual(SelectedPattern)) + 1}. {(!ModifiedPattern.SequenceEqual(SelectedPattern) ? $"The anomaly transformed the grid. The colors in order are: {ColorsToTransform.Join(", ")}" : "The pattern on the right window matches that of the selected pattern.")}";
+
+    public bool[] ApplyTransformationFromButton(int pos)
+    {
+        var groups = Enumerable.Range(0, 5).Select(x => Enumerable.Range(0, 5).Select(y => 5 * x + y).ToArray()).ToArray();
+        var converted = Enumerable.Range(0, 5).Select(_ => new int[5]).ToArray();
+
+        var currentState = ModifiedPattern.ToArray();
+
+        switch (pos)
+        {
+            case 0:
+            case 1:
+                for (int i = 0; i < 5; i++)
+                    for (int j = 0; j < 5; j++)
+                    {
+                        if (pos == 0)
+                            converted[i][4 - j] = groups[i][j];
+                        else
+                            converted[4 - i][j] = groups[i][j];
+                    }
+                break;
+            case 2:
+            case 3:
+                var shifts = Enumerable.Range(0, 5).ToArray();
+
+                for (int i = 0; i < 5; i++)
+                {
+                    if (pos == 2)
+                        shifts[i] = (shifts[i] + pos + 1) % 5;
+                    else
+                        shifts[i] = (shifts[i] - (pos + 1) + 5) % 5;
+                }
+
+                for (int i = 0; i < 5; i++)
+                    for (int j = 0; j < 5; j++)
+                        converted[i][j] = pos == 2 ? groups[shifts[i]][j] : groups[i][shifts[j]];
+                break;
+
+        }
+
+        return converted.SelectMany(x => x.Select(y => currentState[y])).ToArray();
+    }
 
     private bool[] TransformPattern(bool[] pattern, ATColor color, int pos)
     {
-        var groups = Enumerable.Range(0, 5).Select(x => Enumerable.Range(0, 5).Select(y => 10 * x + y).ToArray()).ToArray();
+        var groups = Enumerable.Range(0, 5).Select(x => Enumerable.Range(0, 5).Select(y => 5 * x + y).ToArray()).ToArray();
         var converted = Enumerable.Range(0, 5).Select(_ => new int[5]).ToArray();
 
         switch (color)
@@ -50,9 +92,9 @@ public class PatternIntegrity : SoftwareProgram
                     for (int j = 0; j < 5; j++)
                     {
                         if (pos % 2 == 0)
-                            converted[i][5 - j] = groups[i][j];
+                            converted[i][4 - j] = groups[i][j];
                         else
-                            converted[5 - i][j] = groups[i][j];
+                            converted[4 - i][j] = groups[i][j];
                     }
                 break;
             case ATColor.Yellow:
@@ -85,7 +127,7 @@ public class PatternIntegrity : SoftwareProgram
         {
             var answerToCheck = (bool[])other;
 
-            return answerToCheck.SequenceEqual(selectedPattern);
+            return answerToCheck.SequenceEqual(SelectedPattern);
         }
 
         return false;

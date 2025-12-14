@@ -41,12 +41,37 @@ public class VCRDisplay : MonoBehaviour
             text.text = string.Empty;
     }
 
-    public void InitializeStartup()
-    {
-        startup = StartCoroutine(MainStartup());
-    }
+    public void InitializeStartup() => startup = StartCoroutine(MainStartup());
 
     public void InitializeGlitch(float clipDuration, MeshRenderer screen) => Glitch = StartCoroutine(DoCreepyShit(clipDuration, screen));
+    public void InitializeError(bool caught, float clipDuration, MeshRenderer screen) => Glitch = StartCoroutine(Error(caught, clipDuration, screen));
+
+    public void Transition(MeshRenderer screen)
+    {
+        startup = StartCoroutine(TransitionToSecondPhase());
+        Glitch = StartCoroutine(CrashOutBro(screen));
+    }
+
+    public void EndTransition()
+    {
+        StopCoroutine(startup);
+        StopCoroutine(Glitch);
+        startup = null;
+        Glitch = null;
+
+        for (int i = 0; i < 3; i++)
+        {
+            StopCoroutine(textCoroutines[i]);
+            textCoroutines[i] = null;
+            MainVCRTexts[i].text = string.Empty;
+        }
+    }
+
+    public void StartSolve(MeshRenderer screen)
+    {
+        MainVCRTexts[1].text = "WE WILL MEET AGAIN";
+        StartCoroutine(CrashOutBro(screen));
+    }
 
     IEnumerator DoCreepyShit(float clipDuration, MeshRenderer screen)
     {
@@ -69,7 +94,13 @@ public class VCRDisplay : MonoBehaviour
                 break;
         }
 
-        yield return new WaitForSeconds(clipDuration);
+        var elapsed = 0f;
+
+        while (elapsed < clipDuration)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
 
         StopCoroutine(theCreepy);
         StopCoroutine(crashOut);
@@ -149,6 +180,24 @@ public class VCRDisplay : MonoBehaviour
         }
     }
 
+    IEnumerator TransitionToSecondPhase()
+    {
+        while (true)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                if (textCoroutines[i] != null)
+                {
+                    StopCoroutine(textCoroutines[i]);
+                    textCoroutines[i] = null;
+                }
+
+                textCoroutines[i] = StartCoroutine(TextStartup(i, (i == 1 ? TextAction.Normal : (TextAction)Range(0, 3))));
+            }
+            yield return new WaitForSeconds(Range(0.05f, 0.2f));
+        }
+    }
+
     IEnumerator TextStartup(int ix, TextAction action)
     {
         yield return null;
@@ -178,6 +227,28 @@ public class VCRDisplay : MonoBehaviour
         }
     }
 
+    IEnumerator Error(bool caught, float clipDuration, MeshRenderer screen)
+    {
+        foreach (var vcrText in MainVCRTexts)
+            vcrText.text = Enumerable.Repeat(caught ? "GOT YOU" : "GOODBYE", 5).Join();
+
+        Coroutine holyShitImAboutToDie;
+
+        var oldColor = screen.material.color;
+
+        holyShitImAboutToDie = StartCoroutine(CrashOutBro(screen));
+
+        var elapsed = 0f;
+
+        while (elapsed < clipDuration)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        StopCoroutine(holyShitImAboutToDie);
+        Glitch = null;
+    }
+
     void KillTextsAfterGlitch()
     {
         foreach (var text in MainVCRTexts)
@@ -188,6 +259,7 @@ public class VCRDisplay : MonoBehaviour
     {
         StopCoroutine(startup);
         startup = null;
+        Glitch = null;
 
         for (int i = 0; i < 3; i++)
         {

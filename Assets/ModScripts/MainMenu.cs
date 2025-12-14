@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class MainMenu : MonoBehaviour
 {
     public TextMesh ProgressText, ProgramInfoDisplay, Date;
     public KMSelectable[] ProgramButtons;
+
 
     private Terminal _terminal;
 
@@ -35,6 +34,14 @@ public class MainMenu : MonoBehaviour
 
     public void MarkProgramAsClosed() => programOpened = false;
 
+    public void UpdateProgramCompletions(bool[] completed)
+    {
+        for (int i = 0; i < 4; i++)
+            ProgramButtons[i].GetComponentInChildren<TextMesh>().color = completed[i] ? Color.green : Color.white;
+    }
+
+    public void ShowProgress() => ProgressText.text = $"{_terminal.ProgressCount()}/4 Programs Completed";
+
     void Highlight(KMSelectable button)
     {
         string programName;
@@ -48,9 +55,14 @@ public class MainMenu : MonoBehaviour
 
     void ButtonPress(KMSelectable button)
     {
-        if (_terminal.AllProgramsCompleted() || programOpened)
-            return;
+        button.AddInteractionPunch(0.2f);
 
+        if (_terminal.AllProgramsCompleted() || programOpened)
+        {
+            _terminal.Module.Audio.PlaySoundAtTransform("AlreadyCompleted", button.transform);
+            return;
+        }
+            
 
         _terminal.Module.Audio.PlaySoundAtTransform("OpenProgram", transform);
         _terminal.OpenProgram(Array.IndexOf(ProgramButtons, button));
