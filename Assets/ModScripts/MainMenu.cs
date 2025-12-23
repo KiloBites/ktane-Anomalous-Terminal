@@ -57,7 +57,7 @@ public class MainMenu : MonoBehaviour
     {
         button.AddInteractionPunch(0.2f);
 
-        if (_terminal.AllProgramsCompleted())
+        if (_terminal.AllProgramsCompleted() || _terminal.ProgramIndexCompleted(Array.IndexOf(ProgramButtons, button)))
         {
             _terminal.Module.Audio.PlaySoundAtTransform("AlreadyCompleted", button.transform);
             return;

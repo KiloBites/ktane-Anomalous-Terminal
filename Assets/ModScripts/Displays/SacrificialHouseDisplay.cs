@@ -62,7 +62,7 @@ public class SacrificialHouseDisplay : MonoBehaviour
         key.AddInteractionPunch(0.2f);
         _terminal.Module.Audio.PlaySoundAtTransform($"Type{Range(0, 3)}", key.transform);
 
-        if (_program.ProgramComplete || CurrentlyTyping != null)
+        if (_program.ProgramComplete || CurrentlyTyping != null || _program.KilledOrInvalid)
             return;
 
         var ix = Array.IndexOf(Keyboard, key);
@@ -95,9 +95,6 @@ public class SacrificialHouseDisplay : MonoBehaviour
                 CommandDisplay.text = commandInput;
                 break;
         }
-
-        
-
     }
 
     IEnumerator TypeMessage(bool check = false, bool hiding = false)

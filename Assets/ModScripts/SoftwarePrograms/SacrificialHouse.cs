@@ -40,7 +40,7 @@ public class SacrificialHouse : SoftwareProgram
     {
         Enumerable.Range(0, 5).Select(x => $"Attic {new[] { "Far Left", "Middle Left", "Middle", "Middle Right", "Far Right" }[x]}").ToArray(),
         new[] { "Stairs Hallway", "Full Bathroom", "Master Bedroom", "Bedroom 1", "Bedroom 2" },
-        new[] { "Entrance", "Living Room", "Kitchen", "Kitchen", "Backyard" },
+        new[] { "Entrance", "Living Room", "Kitchen Left Half", "Kitchen Right Half", "Backyard" },
         new[] { "Family Room Far Left", "Family Room Middle Left", "Half Bathroom", "Family Room Middle Right", "Family Room Far Right" },
         new[] { "Basement", "Laundry Room", "The Circle", "Basement", "Closet" }
     }.SelectMany(x => x).ToArray();
@@ -64,12 +64,28 @@ public class SacrificialHouse : SoftwareProgram
 
     private List<string> itemsToGet;
 
-    private int?[] GetAdjacentCells(int pos)
+    private int?[] GetOrthrogonalAdjacentCells(int pos)
     {
         var row = pos / 5;
         var col = pos % 5;
 
         return new[] { row - 1, col + 1, row + 1, col - 1 }.Select((x, i) => x < 0 || x > 4 ? (int?)null : ((i % 2 != 0 ? row : x) * 5) + (i % 2 == 0 ? col : x)).ToArray();
+    }
+
+    private int?[] GetDiagonalAdjacentCells(int pos)
+    {
+        var row = pos / 5;
+        var col = pos % 5;
+
+        var adj = new[]
+        {
+            new[] { row - 1, col - 1 },
+            new[] { row - 1, col + 1 },
+            new[] { row + 1, col + 1 },
+            new[] { row + 1, col - 1 }
+        };
+
+        return adj.Select(x => x.Any(y => y < 0 || y > 4) ? (int?)null : x[0] * 5 + x[1]).ToArray();
     }
 
     private int ManhattanDistance(int pos, int neighbor) =>
@@ -80,12 +96,15 @@ public class SacrificialHouse : SoftwareProgram
         Reset();
     }
 
+    public bool KilledOrInvalid;
+
     public void Reset()
     {
+        KilledOrInvalid = false;
         CollectedItems.Clear();
         house = GenerateHouse();
         currentPosition = 10;
-        anomalyPosition = Enumerable.Range(0, 25).Where(x => (x != 10) || ManhattanDistance(currentPosition, x) >= 6).PickRandom();
+        anomalyPosition = Enumerable.Range(0, 25).Where(x => (x != 10) || ManhattanDistance(currentPosition, x) >= 10).PickRandom();
         itemsToGet = house.SelectMany(x => x.Items).Distinct().ToList().Shuffle().Take(3).ToList();
     }
 
@@ -107,10 +126,10 @@ public class SacrificialHouse : SoftwareProgram
         else if (peek)
             return $"Items currently in the room are: {house[currentPosition].Items.Join(", ")}";
 
-        if (GetAdjacentCells(currentPosition).Contains(anomalyPosition))
-            return $"You are currently in {house[currentPosition]}. The anomaly is nearby. You have to hide.";
+        if (GetOrthrogonalAdjacentCells(currentPosition).Concat(GetDiagonalAdjacentCells(currentPosition)).Contains(anomalyPosition))
+            return $"You are currently in {house[currentPosition]}. You can enter into {GetOrthrogonalAdjacentCells(currentPosition).Where(x => x != null).Select(x => house[x.Value]).Join(", ")}. The anomaly is nearby. You have to hide.";
 
-        return $"You are currently in {house[currentPosition]}. You can enter into {GetAdjacentCells(currentPosition).Where(x => x != null).Select(x => house[x.Value]).Join(", ")}.";
+        return $"You are currently in {house[currentPosition]}. You can enter into {GetOrthrogonalAdjacentCells(currentPosition).Where(x => x != null).Select(x => house[x.Value]).Join(", ")}.";
     }
 
     public bool Killed() => currentPosition == anomalyPosition;
@@ -132,7 +151,7 @@ public class SacrificialHouse : SoftwareProgram
                     if (split.Length == 2)
                         goto default;
 
-                    if (!roomNames.Contains(split.Skip(2).Join()) && !GetAdjacentCells(currentPosition).Where(x => x != null).Select(x => house[x.Value]).Any(x => x.RoomName.ToUpperInvariant().Contains(split.Skip(2).Join())))
+                    if (!roomNames.Contains(split.Skip(2).Join()) && !GetOrthrogonalAdjacentCells(currentPosition).Where(x => x != null).Select(x => house[x.Value]).Any(x => x.RoomName.ToUpperInvariant().Contains(split.Skip(2).Join())))
                         goto default;
 
                     goto movecommandvalid;
@@ -176,12 +195,12 @@ public class SacrificialHouse : SoftwareProgram
             case "HIDE":
                 if (split.Length > 1)
                     goto default;
-                else if (!GetAdjacentCells(currentPosition).Contains(anomalyPosition))
+                else if (!GetOrthrogonalAdjacentCells(currentPosition).Concat(GetDiagonalAdjacentCells(currentPosition)).Contains(anomalyPosition))
                 {
                     message = "The anomaly isn't nearby yet.";
                     return false;
                 }
-                anomalyPosition = Enumerable.Range(0, 25).Where(x => (x != currentPosition) || ManhattanDistance(currentPosition, x) >= 6).PickRandom();
+                anomalyPosition = Enumerable.Range(0, 25).Where(x => (x != currentPosition) || ManhattanDistance(currentPosition, x) >= 10).PickRandom();
                 message = "You have hidden successfully and the anomaly went somewhere else.";
                 return true;
             case "LOOK":
@@ -205,7 +224,7 @@ public class SacrificialHouse : SoftwareProgram
                     return true;
                 }
                 goto default;
-            case "CLOSE":
+            case "LOCATION":
                 if (split.Length > 1)
                     goto default;
 
@@ -225,7 +244,8 @@ public class SacrificialHouse : SoftwareProgram
                     return false;
                 }
 
-                message = CheckInformation(CollectedItems) ? "Thank you for your honor." : "This isn't right. We'll sacrifice you instead.";
+                KilledOrInvalid = InvalidSacrifice();
+                message = !KilledOrInvalid ? "Thank you for your honor." : "This isn't right. We'll sacrifice you instead.";
                 return true;
             default:
                 goto commandinvalid;
@@ -233,10 +253,12 @@ public class SacrificialHouse : SoftwareProgram
 
     movecommandvalid:;
 
-        currentPosition = (int)GetAdjacentCells(currentPosition).Where(x => x != null).First(x => house[x.Value].RoomName.ToUpperInvariant().Contains(split.Skip(2).Join()));
-        anomalyPosition = GetAdjacentCells(anomalyPosition).Contains(currentPosition) ? currentPosition : (int)GetAdjacentCells(anomalyPosition).Where(x => x != null).PickRandom();
+        currentPosition = (int)GetOrthrogonalAdjacentCells(currentPosition).Where(x => x != null).First(x => house[x.Value].RoomName.ToUpperInvariant().Contains(split.Skip(2).Join()));
+        anomalyPosition = GetOrthrogonalAdjacentCells(anomalyPosition).Concat(GetDiagonalAdjacentCells(anomalyPosition)).Contains(currentPosition) ? currentPosition : (int)GetOrthrogonalAdjacentCells(anomalyPosition).Concat(GetDiagonalAdjacentCells(anomalyPosition)).Where(x => x != null).PickRandom();
 
-        message = Killed() ? "THE ANOMALY CAUGHT YOU!" : ObtainMessage();
+        KilledOrInvalid = Killed();
+
+        message = KilledOrInvalid ? "THE ANOMALY CAUGHT YOU!" : ObtainMessage();
         return true;
     commandinvalid:;
 

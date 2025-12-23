@@ -35,9 +35,9 @@ public class AnomalousTerminalScript : MonoBehaviour
 	[NonSerialized]
 	public bool IsModuleFocused;
 
-	private bool motherboardOpen;
+	private bool motherboardOpen, motherboardToggling;
 
-	private Coroutine rising, floating, dropping;
+	private Coroutine rising, floating, tilting, dropping;
 
 	private Vector3 originalModulePosition, motherboardScale;
 	private Vector3 originalMainPosition, newMainPosition;
@@ -83,18 +83,25 @@ public class AnomalousTerminalScript : MonoBehaviour
 		StatusLightButton.AddInteractionPunch(0.4f);
 		Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.SelectionTick, StatusLightButton.transform);
 
-		if (moduleSolved || !Terminal.AllProgramsCompleted() || motherboardOpen || Terminal.WaitForBootup != null)
+		if (moduleSolved || !Terminal.AllProgramsCompleted() || motherboardOpen || motherboardToggling || Terminal.WaitForBootup != null)
             return;
 
-		ToggleTheMotherboard(true);
+        ToggleTheMotherboard(true);
 	}
 
 	public void RaiseModule(bool firstTime) => rising = StartCoroutine(Rise(firstTime));
 
+	private float GetNewPos()
+	{
+		float progressCount = Terminal.ProgressCount() / 100f;
+
+		return 0.035f + progressCount;
+	}
+
 	IEnumerator Rise(bool firstTime)
 	{
 		var oldPos = EntireModule.localPosition;
-		var newPos = new Vector3(oldPos.x, firstTime ? 0.03f : 0.01f * Terminal.ProgressCount(), oldPos.z);
+		var newPos = new Vector3(oldPos.x, firstTime ? 0.035f : GetNewPos(), oldPos.z);
 
 		var duration = 1.5f;
 		var elapsed = 0f;
@@ -105,14 +112,43 @@ public class AnomalousTerminalScript : MonoBehaviour
             floating = null;
 		}
 
+		if (tilting == null)
+			tilting = StartCoroutine(StartTilt());
+
 		while (elapsed < duration)
 		{
 			EntireModule.localPosition = new Vector3(oldPos.x, Easing.InOutSine(elapsed, oldPos.y, newPos.y, duration), oldPos.z);
 			yield return null;
 			elapsed += Time.deltaTime;
 		}
+		EntireModule.localPosition = newPos;
+
         floating = StartCoroutine(Floating());
         rising = null;
+	}
+
+	private Vector3 GetTilt() => new Vector3(Mathf.Sin(Time.time / 1.5f), 0, Mathf.Cos(Time.time / (Mathf.PI * 0.5f))) * 5;
+
+	IEnumerator StartTilt()
+	{
+		var oldRot = EntireModule.localEulerAngles;
+
+		var elapsed = 0f;
+		var duration = 1.5f;
+
+		while (elapsed < duration)
+		{
+			EntireModule.localEulerAngles = Vector3.Lerp(oldRot, GetTilt(), Easing.InOutSine(elapsed, 0, 1, duration));
+			yield return null;
+			elapsed += Time.deltaTime;
+		}
+		EntireModule.localEulerAngles = GetTilt();
+
+		while (true)
+		{
+			EntireModule.localEulerAngles = GetTilt();
+			yield return null;
+		}
 	}
 
 	IEnumerator Floating()
@@ -131,6 +167,7 @@ public class AnomalousTerminalScript : MonoBehaviour
 				yield return null;
 				elapsed += Time.deltaTime;
 			}
+			EntireModule.localPosition = newPos;
 			elapsed = 0;
 
 			while (elapsed < duration)
@@ -139,6 +176,8 @@ public class AnomalousTerminalScript : MonoBehaviour
                 yield return null;
                 elapsed += Time.deltaTime;
             }
+
+			EntireModule.localPosition = oldPos;
 		}
 	}
 
@@ -150,7 +189,10 @@ public class AnomalousTerminalScript : MonoBehaviour
 
 	public void ToggleTheMotherboard(bool opening)
 	{
-		if (opening)
+        Terminal.ToggleMenu(false);
+		ModuleScreen.material = ScreenColorMats[0];
+
+        if (opening)
 			dropping = StartCoroutine(DoDrop());
 		else
 			rising = StartCoroutine(ToggleMotherboard(false));
@@ -168,19 +210,28 @@ public class AnomalousTerminalScript : MonoBehaviour
 			StopCoroutine(floating);
 			floating = null;
 		}
+		if (tilting != null)
+		{
+			StopCoroutine(tilting);
+			tilting = null;
+		}
 
-		if (EntireModule.localPosition != originalModulePosition)
+		motherboardToggling = true;
+
+		if ((EntireModule.localPosition != originalModulePosition) && (EntireModule.localEulerAngles != Vector3.zero))
+		{
             rising = StartCoroutine(DropPositionBackIntoPlace());
+			tilting = StartCoroutine(StopTilt());
+            yield return new WaitUntil(() => rising == null && tilting == null);
+        }
 
-
-        yield return new WaitUntil(() => rising == null);
+		yield return new WaitForSeconds(2);
 
 		rising = StartCoroutine(ToggleMotherboard(true));
 	}
 
 	IEnumerator DropPositionBackIntoPlace()
 	{
-		Terminal.ToggleMenu(false);
 		ModuleScreen.material = ScreenColorMats[0];
 
 		var oldPos = EntireModule.localPosition;
@@ -200,6 +251,33 @@ public class AnomalousTerminalScript : MonoBehaviour
         Particles.Emit(5);
         yield return new WaitForSeconds(1.5f);
 		rising = null;
+	}
+
+	IEnumerator StopTilt()
+	{
+		var oldRot = EntireModule.localEulerAngles;
+
+        if (oldRot.x > 180)
+            oldRot -= Vector3.right * 360;
+        else if (oldRot.x < -180)
+            oldRot += Vector3.right * 360;
+
+        if (oldRot.z > 180)
+            oldRot -= Vector3.forward * 360;
+        else if (oldRot.z < -180)
+            oldRot += Vector3.forward * 360;
+
+        var duration = 0.85f;
+		var elapsed = 0f;
+
+		while (elapsed < duration)
+		{
+			EntireModule.localEulerAngles = Vector3.Lerp(oldRot, Vector3.zero, Easing.InOutSine(elapsed, 0, 1, duration));
+			yield return null;
+			elapsed += Time.deltaTime;
+		}
+		EntireModule.localEulerAngles = Vector3.zero;
+		tilting = null;
 	}
 
 	IEnumerator ToggleMotherboard(bool opening)
@@ -249,9 +327,9 @@ public class AnomalousTerminalScript : MonoBehaviour
 			MainVCRDisplay.EndTransition();
 			motherboardOpen = true;
         }
-			
 
-			rising = null;
+		motherboardToggling = false;
+		rising = null;
 	}
 
 
@@ -271,6 +349,4 @@ public class AnomalousTerminalScript : MonoBehaviour
 		Audio.PlaySoundAtTransform(GlitchyErrorSound.name, transform);
 		MainVCRDisplay.InitializeError(caught, GlitchyErrorSound.length, ModuleScreen);
 	}
-
-
 }

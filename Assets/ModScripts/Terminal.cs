@@ -63,6 +63,7 @@ public class Terminal : MonoBehaviour
 
     public int ProgressCount() => programsCompleted.Count(x => x);
     public bool AllProgramsCompleted() => programsCompleted.All(x => x);
+    public bool ProgramIndexCompleted(int ix) => programsCompleted[ix];
 
     private static readonly Dictionary<SoftwareProgramType, string> programTypeNames = new Dictionary<SoftwareProgramType, string>
     {
