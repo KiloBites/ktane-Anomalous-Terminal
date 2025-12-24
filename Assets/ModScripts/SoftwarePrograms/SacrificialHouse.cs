@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using static UnityEngine.Random;
+using static UnityEngine.Debug;
 
 public class SacrificialHouse : SoftwareProgram
 {
@@ -39,7 +40,7 @@ public class SacrificialHouse : SoftwareProgram
     private static readonly string[] roomNames = new[]
     {
         Enumerable.Range(0, 5).Select(x => $"Attic {new[] { "Far Left", "Middle Left", "Middle", "Middle Right", "Far Right" }[x]}").ToArray(),
-        new[] { "Stairs Hallway", "Full Bathroom", "Master Bedroom", "Bedroom 1", "Bedroom 2" },
+        new[] { "Stairs Hallway", "Full Bathroom", "Master Bedroom", "Bedroom A", "Bedroom B" },
         new[] { "Entrance", "Living Room", "Kitchen Left Half", "Kitchen Right Half", "Backyard" },
         new[] { "Family Room Far Left", "Family Room Middle Left", "Half Bathroom", "Family Room Middle Right", "Family Room Far Right" },
         new[] { "Basement", "Laundry Room", "The Circle", "Basement", "Closet" }
@@ -140,6 +141,9 @@ public class SacrificialHouse : SoftwareProgram
         var split = command.ToUpperInvariant().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
 
         string item = null;
+
+        if (split.Length == 0)
+            goto commandinvalid;
 
         switch (split[0])
         {
@@ -254,7 +258,11 @@ public class SacrificialHouse : SoftwareProgram
     movecommandvalid:;
 
         currentPosition = (int)GetOrthrogonalAdjacentCells(currentPosition).Where(x => x != null).First(x => house[x.Value].RoomName.ToUpperInvariant().Contains(split.Skip(2).Join()));
-        anomalyPosition = GetOrthrogonalAdjacentCells(anomalyPosition).Concat(GetDiagonalAdjacentCells(anomalyPosition)).Contains(currentPosition) ? currentPosition : (int)GetOrthrogonalAdjacentCells(anomalyPosition).Concat(GetDiagonalAdjacentCells(anomalyPosition)).Where(x => x != null).PickRandom();
+        anomalyPosition = GetOrthrogonalAdjacentCells(anomalyPosition).Concat(GetDiagonalAdjacentCells(anomalyPosition)).Contains(currentPosition) ? currentPosition : (int)GetOrthrogonalAdjacentCells(anomalyPosition).Concat(GetDiagonalAdjacentCells(anomalyPosition)).Where(x => x != null).Where(x => x.Value != currentPosition).PickRandom();
+
+        Log($"{"ABCDE"[currentPosition % 5]}{(currentPosition / 5) + 1}");
+        Log($"{"ABCDE"[anomalyPosition % 5]}{(anomalyPosition / 5) + 1}");
+
 
         KilledOrInvalid = Killed();
 

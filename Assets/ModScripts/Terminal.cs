@@ -136,7 +136,7 @@ public class Terminal : MonoBehaviour
     public void GeneratePrograms()
     {
         var programEnums = (SoftwareProgramType[])Enum.GetValues(typeof(SoftwareProgramType));
-        var shuffledPrograms = programEnums.ToList().Shuffle().Take(4);
+        var shuffledPrograms = programEnums.Where(x => x != SoftwareProgramType.SacrificialHouse).ToList().Shuffle().Take(4); // Note: Revert this once this is looked into properly.
 
         programs = shuffledPrograms.Select((x, i) => ObtainProgram(x, i)).ToList();
 
@@ -219,6 +219,7 @@ public class Terminal : MonoBehaviour
         Module.CreepyErrorShit(caught);
         yield return new WaitUntil(() => Module.MainVCRDisplay.Glitch == null);
         programObjects[ix].SetActive(true);
+        Module.Module.HandleStrike();
         CreepyShit = null;
     }
 

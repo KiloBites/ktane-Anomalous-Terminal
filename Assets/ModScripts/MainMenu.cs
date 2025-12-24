@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class MainMenu : MonoBehaviour
 {
-    public TextMesh ProgressText, ProgramInfoDisplay, Date;
+    public TextMesh ProgressText, ProgramInfoDisplay, Date, ReadyToUnlockText;
     public KMSelectable[] ProgramButtons;
 
 
@@ -28,6 +28,11 @@ public class MainMenu : MonoBehaviour
             return;
 
         Date.text = DateTime.Now.ToString("dddd, MMMM dd, yyyy h:mm:ss tt");
+
+        if (ReadyToUnlockText.text.Length > 0)
+            return;
+
+        ReadyToUnlockText.text = _terminal.AllProgramsCompleted() ? "The Terminal is ready to be unlocked!" : string.Empty;
     }
 
     public void AssignTerminal(Terminal terminal) => _terminal = terminal;

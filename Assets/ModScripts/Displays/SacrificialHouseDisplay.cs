@@ -31,7 +31,7 @@ public class SacrificialHouseDisplay : MonoBehaviour
 
     void Update()
     {
-        if (_program.ProgramComplete || CurrentlyTyping != null)
+        if (_program.ProgramComplete || CurrentlyTyping != null || _program.KilledOrInvalid)
             return;
 
         if (_terminal.Module.IsModuleFocused)
@@ -110,9 +110,9 @@ public class SacrificialHouseDisplay : MonoBehaviour
             yield return new WaitForSeconds(0.05f);
         }
 
-        if (check)
+        if (check || _program.KilledOrInvalid)
         {
-            if (_program.Killed() || _program.InvalidSacrifice())
+            if (_program.KilledOrInvalid)
             {
                 _terminal.Module.DoLog("Either the anomaly killed you, or you have invalid/no items sacrificed. Strike!");
                 yield return new WaitForSeconds(1);
@@ -124,6 +124,8 @@ public class SacrificialHouseDisplay : MonoBehaviour
                 message = _program.ObtainMessage().WordWrap(25).Join("\n");
                 _terminal.ToggleObject(_program.ProgramIndex, true);
                 check = false;
+                _program.Reset();
+                message = _program.ObtainMessage().WordWrap(25).Join("\n");
                 goto reset;
             }
             else if (!_program.InvalidSacrifice())

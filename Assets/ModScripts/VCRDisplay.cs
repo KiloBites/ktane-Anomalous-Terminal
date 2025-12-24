@@ -230,7 +230,7 @@ public class VCRDisplay : MonoBehaviour
     IEnumerator Error(bool caught, float clipDuration, MeshRenderer screen)
     {
         foreach (var vcrText in MainVCRTexts)
-            vcrText.text = Enumerable.Repeat(caught ? "GOT YOU" : "GOODBYE", 5).Join();
+            vcrText.text = Enumerable.Repeat(caught ? "GOT YOU" : "GOODBYE", 3).Join();
 
         Coroutine holyShitImAboutToDie;
 
@@ -246,6 +246,11 @@ public class VCRDisplay : MonoBehaviour
             yield return null;
         }
         StopCoroutine(holyShitImAboutToDie);
+
+        screen.material.color = oldColor;
+
+        KillTextsAfterGlitch();
+
         Glitch = null;
     }
 
